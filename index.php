@@ -2,42 +2,38 @@
 
 require 'vendor/autoload.php';
 
-$app = new \atk4\ui\App('Welcome to Agile Toolkit');
-$app->initLayout('Centered');
+require 'init.php';
 
+$app = new App();
 
-/****************************************************************
- * You can now remove the text below and write your own Web App *
- *                                                              *
- * Thank you for trying out Agile Toolkit                       *
- ****************************************************************/
+$columns = $app->add('Columns');
 
+$left = $columns->addColumn();
+$right = $columns->addColumn();
 
-$app->add('Text')
-    ->addParagraph('You have successfully installed Agile Toolkit '.$app->version)
-    ->addParagraph('Open index.php file in your text editor and follow documentation.');
+$right->add(['Message', 'Welcome to the party!', 'info'])->text
+    ->addParagraph('Our party is using "Bring Your Own Drink™" policy, so be sure '.
+    'to grab a beer or lemonade');
 
-$app->add(['Button', 'icon'=>'dashboard'])
-    ->addClass('primary')
-    ->set('Admin')
-    ->link(['admin']);
+$form = $left->add('Form');
+$form->setModel(new Guest($app->db));
+$form->onSubmit(function($form) {
 
-$app->add(['Button', 'icon'=>'lightning'])
-    ->set('Learn NOW!')
-    ->setAttr('target', '_blank')
-    ->link('https://www.agiletoolkit.org/school');
+    // store new guest data
+    $form->model->save();
 
-$app->add(['Button', 'icon'=>'book'])
-    ->set('Documentation')
-    ->setAttr('target', '_blank')
-    ->link('http://agile-ui.readthedocs.io/');
+    $sid = "AC9a1f7cc91b2b06a3e6e9a472cdbb165b"; // Your Account SID from www.twilio.com/console
+    $token = "4d6e23d8fb4ae27d4ffede41e2281037"; // Your Auth Token from www.twilio.com/console
 
-$app->add(['Button', 'icon'=>'trophy'])
-    ->set('Examples')
-    ->setAttr('target', '_blank')
-    ->link('http://ui.agiletoolkit.org/');
+    $client = new Twilio\Rest\Client($sid, $token);
+    $message = $client->messages->create(
+      '07427599339', // Text this number
+      array(
+        'from' => '447533027709', // From a valid Twilio number
+        'body' => 'Guest '.$form->model['name'].' will be coming. ('.$form->model['phone'].')'
+      )
+    );
 
-$app->add(['Button', 'icon'=>'cogs'])
-    ->set('ATK Data')
-    ->setAttr('target', '_blank')
-    ->link('https://git.io/ad');
+    return $form->success('Thank you, we will wait for you, '.$form->model['name']);
+
+});
